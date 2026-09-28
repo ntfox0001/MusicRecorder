@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\BasicPitch\BasicPitch.csproj" />
+    <ProjectReference Include="..\Mt3\Mt3.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+  <!-- MT3 ONNX models（正本位于 mt3_onnx/，由 convert_mt3_onnx.py 导出） -->
+  <ItemGroup>
+    <None Include="..\mt3_onnx\mt3_encoder.onnx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\mt3_onnx\mt3_encoder.onnx.data" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\mt3_onnx\mt3_decoder.onnx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\mt3_onnx\mt3_decoder.onnx.data" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

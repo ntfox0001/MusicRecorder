@@ -1,0 +1,18 @@
+# ---- 构建输出 ----
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+
+# ---- MT3 模型（体积过大，不入库；下载方式见 README「MT3 模型下载」）----
+mt3_onnx/
+mr_mt3_model/
+
+# ---- Python 虚拟环境 / 缓存 ----
+.onnx_conv_venv/
+__pycache__/
+*.pyc
+
+# ---- 运行时产物 ----
+output.mid

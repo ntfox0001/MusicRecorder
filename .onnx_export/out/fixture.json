@@ -1,0 +1,32 @@
+{
+ "input": 43844,
+ "outputs": [
+  {
+   "name": "StatefulPartitionedCall:2",
+   "file": "test_out_StatefulPartitionedCall_2.bin",
+   "shape": [
+    1,
+    172,
+    88
+   ]
+  },
+  {
+   "name": "StatefulPartitionedCall:1",
+   "file": "test_out_StatefulPartitionedCall_1.bin",
+   "shape": [
+    1,
+    172,
+    88
+   ]
+  },
+  {
+   "name": "StatefulPartitionedCall:0",
+   "file": "test_out_StatefulPartitionedCall_0.bin",
+   "shape": [
+    1,
+    172,
+    264
+   ]
+  }
+ ]
+}

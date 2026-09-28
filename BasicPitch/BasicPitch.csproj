@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>10</LangVersion>
+    <RootNamespace>BasicPitch</RootNamespace>
+    <AssemblyName>BasicPitch</AssemblyName>
+  </PropertyGroup>
+
+</Project>
