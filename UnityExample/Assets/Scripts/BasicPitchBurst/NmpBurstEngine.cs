@@ -30,6 +30,7 @@ namespace BasicPitch.Burst
         /// <summary>输出元素数超过该阈值才走多线程调度，小张量直接同步执行以免调度开销。</summary>
         private const int ParallelThreshold = 2048;
         private const int BatchSize = 64;
+        private const int MaxM = 64;
 
         private NativeArray<float> _data;     // 所有缓冲区共享的大数组
         private NativeArray<int> _bufOff;     // 每个缓冲区在 _data 中的起始偏移
@@ -86,6 +87,10 @@ namespace BasicPitch.Burst
                         throw new NotSupportedException("Burst 卷积仅支持 dilation=1");
                 if (NmpIr.List[p + 1 + 4 * r] != 1)
                     throw new NotSupportedException("Burst 卷积仅支持 group=1");
+                int wIdx = -NmpIr.In1[i] - 2;
+                int wsOff = NmpIr.WeightShapeOff[wIdx];
+                int M = NmpIr.WeightShapeData[wsOff];
+                if (M > MaxM) throw new NotSupportedException($"Burst 卷积 M={M} 超过 MaxM={MaxM}");
             }
         }
 
@@ -121,7 +126,12 @@ namespace BasicPitch.Burst
                 else if (op == NmpIr.Conv)
                 {
                     conv.node = i;
-                    int count = NmpIr.BufferCount[NmpIr.Out[i]];
+                    // Conv 按空间位置 (oh,ow) 并行，而非按输出元素 (m,oh,ow)
+                    int oB = NmpIr.Out[i];
+                    int osOff = NmpIr.ShapeOff[oB];
+                    int OH = NmpIr.ShapeData[osOff + 2];
+                    int OW = NmpIr.ShapeData[osOff + 3];
+                    int count = OH * OW;
                     if (count >= ParallelThreshold) conv.Schedule(count, BatchSize).Complete();
                     else conv.Run(count);
                 }
@@ -577,11 +587,16 @@ namespace BasicPitch.Burst
     /// <summary>
     /// 卷积算子（本模型全部为 2 维、stride=(1,k)、dilation=1、group=1，可选逐输出通道 bias）。
     /// 本模型的 bias 由图中融合的 BatchNorm 折叠而来（常量张量），并非独立输入缓冲区。
-    /// 每个输出元素独立完成 C×KH×KW 次乘加，按输出元素并行展开。
+    ///
+    /// 优化策略：按空间位置 (oh,ow) 并行，M 个输出通道在内层循环复用同一输入窗口。
+    /// 这将输入读取量从 M×OH×OW×C×KH×KW 降到 OH×OW×C×KH×KW（降 M 倍）。
+    /// W 维度使用无分支中间段，让 Burst 可自由向量化。
     /// </summary>
     [BurstCompile]
     internal struct NmpConvJob : IJobParallelFor
     {
+        private const int MaxM = 64;
+
         [ReadOnly] public NativeArray<int> in0, in1, in2, outB;
         [ReadOnly] public NativeArray<int> listOff, list;
         [ReadOnly] public NativeArray<int> shapeOff, shapeData;
@@ -591,7 +606,7 @@ namespace BasicPitch.Burst
         [NativeDisableParallelForRestriction] public NativeArray<float> data;
         public int node;
 
-        public void Execute(int index)
+        public void Execute(int spatialIdx)
         {
             int inB = in0[node], oB = outB[node];
             int p = listOff[node];
@@ -613,39 +628,57 @@ namespace BasicPitch.Burst
             int OH = shapeData[osOff + 2];
             int OW = shapeData[osOff + 3];
 
-            int plane = OH * OW;
-            int m = index / plane;
-            int rem = index - m * plane;
-            int oh = rem / OW;
-            int ow = rem - oh * OW;
+            int oh = spatialIdx / OW;
+            int ow = spatialIdx - oh * OW;
 
             int ih0 = oh * sH - pH;
             int iw0 = ow * sW - pW;
 
-            int inBase = bufOff[inB];
+            // 累加器（含 bias 初值）
             int wBase = wOff[wIdx];
             int bIdx = in2[node] <= -2 ? -in2[node] - 2 : -1;
-            float acc = bIdx >= 0 ? weight[wOff[bIdx] + m] : 0f;
+            int biasOff = bIdx >= 0 ? wOff[bIdx] : 0;
+
+            Span<float> acc = stackalloc float[MaxM];
+            for (int m = 0; m < M; m++)
+                acc[m] = bIdx >= 0 ? weight[biasOff + m] : 0f;
+
+            int inBase = bufOff[inB];
+            int outBase = bufOff[oB];
+            int plane = OH * OW;
+            int wCS = C * KH * KW;  // 权重 M 维步长
+
+            // W 维有效范围：kwLo..kwHi-1 全部合法，无需边界检查
+            int kwLo = -iw0; if (kwLo < 0) kwLo = 0;
+            int kwHi = W - iw0; if (kwHi > KW) kwHi = KW;
 
             for (int c = 0; c < C; c++)
             {
                 int xc = inBase + c * H * W;
-                int wc = wBase + (m * C + c) * KH * KW;
+                int wc = wBase + c * (KH * KW);
+
                 for (int kh = 0; kh < KH; kh++)
                 {
                     int ih = ih0 + kh;
                     if ((uint)ih >= (uint)H) continue;
                     int xr = xc + ih * W;
                     int wr = wc + kh * KW;
-                    for (int kw = 0; kw < KW; kw++)
+
+                    // 无分支中间段：kwLo..kwHi-1
+                    for (int kw = kwLo; kw < kwHi; kw++)
                     {
-                        int iw = iw0 + kw;
-                        if ((uint)iw >= (uint)W) continue;
-                        acc += data[xr + iw] * weight[wr + kw];
+                        float xv = data[xr + iw0 + kw];
+                        int wp = wr + kw;
+                        for (int m = 0; m < M; m++)
+                            acc[m] += xv * weight[wp + m * wCS];
                     }
                 }
             }
-            data[bufOff[oB] + index] = acc;
+
+            // 写回 M 个输出通道
+            int outPos = outBase + spatialIdx;
+            for (int m = 0; m < M; m++)
+                data[outPos + m * plane] = acc[m];
         }
     }
 }
