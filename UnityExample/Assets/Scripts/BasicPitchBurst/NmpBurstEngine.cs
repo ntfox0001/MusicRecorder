@@ -221,7 +221,7 @@ namespace BasicPitch.Burst
         [ReadOnly] public NativeArray<int> wRank, wShapeOff, wShapeData, wOff;
         [ReadOnly] public NativeArray<float> weight;
         [ReadOnly] public NativeArray<int> bufOff;
-        public NativeArray<float> data;
+        [NativeDisableParallelForRestriction] public NativeArray<float> data;
         public int node;
 
         public void Execute(int o)
@@ -588,7 +588,7 @@ namespace BasicPitch.Burst
         [ReadOnly] public NativeArray<int> wShapeOff, wShapeData, wOff;
         [ReadOnly] public NativeArray<float> weight;
         [ReadOnly] public NativeArray<int> bufOff;
-        public NativeArray<float> data;
+        [NativeDisableParallelForRestriction] public NativeArray<float> data;
         public int node;
 
         public void Execute(int index)
