@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Mp3ToSheet.Bench</AssemblyName>
+    <RootNamespace>Mp3ToSheet.Bench</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BasicPitch\BasicPitch.csproj" />
+    <ProjectReference Include="..\Mt3\Mt3.csproj" />
+    <ProjectReference Include="..\Madmom\Madmom.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+  <!-- 与 WPF 版共用同一份解码 / 引擎逻辑，保证测速结果与 GUI 一致 -->
+  <ItemGroup>
+    <Compile Include="..\Mp3ToSheet\AudioLoader.cs" />
+    <Compile Include="..\Mp3ToSheet\EngineRunner.cs" />
+  </ItemGroup>
+
+</Project>

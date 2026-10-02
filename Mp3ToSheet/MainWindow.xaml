@@ -28,9 +28,18 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="帧激活阈值:" VerticalAlignment="Center"/>
-                <TextBox x:Name="TxtThreshold" Grid.Column="1" Text="0.3"
+                <TextBlock Grid.Column="0" Text="引擎:" VerticalAlignment="Center"/>
+                <ComboBox x:Name="CmbEngine" Grid.Column="1" Margin="8,0,16,0"
+                          VerticalContentAlignment="Center" SelectedIndex="0">
+                    <ComboBoxItem Content="Basic Pitch（单乐器转谱）" Tag="basicpitch"/>
+                    <ComboBoxItem Content="MT3（多乐器转谱）" Tag="mt3"/>
+                    <ComboBoxItem Content="Madmom（节拍 / 拍号）" Tag="madmom"/>
+                </ComboBox>
+                <TextBlock Grid.Column="2" Text="帧激活阈值:" VerticalAlignment="Center"/>
+                <TextBox x:Name="TxtThreshold" Grid.Column="3" Text="0.3" Width="70"
                          Margin="8,0,0,0" VerticalContentAlignment="Center"/>
             </Grid>
         </GroupBox>

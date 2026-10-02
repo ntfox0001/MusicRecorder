@@ -17,3 +17,17 @@ __pycache__/
 
 # ---- 运行时产物 ----
 output.mid
+
+# ---- madmom：抓取的第三方源码 / 中间产物 ----
+# .madmom_src 是 madmom 的 git clone（含 .git），入库会产生坏的 gitlink，必须排除
+.madmom_src/
+.madmom_pkg/
+.bench_out/
+.madmom_export/long_3min.wav
+.madmom_export/*.txt
+.madmom_export/act_dump/
+.madmom_export/debug_*.py
+.madmom_export/out_*/
+
+# ---- 测试音频（体积大且多含版权）----
+*.mp3
