@@ -9,12 +9,13 @@
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
 
-  <!-- MT3 ONNX models（正本位于 mt3_onnx/，由 convert_mt3_onnx.py 导出） -->
+  <!-- MT3 ONNX models（正本位于 mt3_onnx/，由 convert_mt3_onnx.py 导出）
+       未安装 MT3 模型时不参与构建，避免首次 clone 直接 MSB3030 -->
   <ItemGroup>
-    <None Include="..\mt3_onnx\mt3_encoder.onnx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\mt3_onnx\mt3_encoder.onnx.data" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\mt3_onnx\mt3_decoder.onnx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\mt3_onnx\mt3_decoder.onnx.data" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\mt3_onnx\mt3_encoder.onnx" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\mt3_onnx\mt3_encoder.onnx')" />
+    <None Include="..\mt3_onnx\mt3_encoder.onnx.data" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\mt3_onnx\mt3_encoder.onnx.data')" />
+    <None Include="..\mt3_onnx\mt3_decoder.onnx" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\mt3_onnx\mt3_decoder.onnx')" />
+    <None Include="..\mt3_onnx\mt3_decoder.onnx.data" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\mt3_onnx\mt3_decoder.onnx.data')" />
   </ItemGroup>
 
   <PropertyGroup>

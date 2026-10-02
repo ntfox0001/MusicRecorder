@@ -37,7 +37,7 @@ Madmom/                 节奏/拍号检测库（beat+downbeat+meter）→ Madmo
   DownBeatDbn.cs         downbeat/meter DBN 封装（含拍号推断）
   BeatTracker.cs         beat-only DBN 封装
   IrGraph.cs             IR 图描述（算子编码 0..26 + 命名权重）
-  *Ir.g.cs               由模型生成的权重文件（本机生成，不入库，见 Madmom/README.md）
+  *Ir.g.cs               由模型生成的权重文件（已内置，见 Madmom/README.md）
 
 Madmom.Test/            冒烟测试（合成权重，验证引擎 + DBN 管线，不依赖真实模型）
 Madmom.EndToEnd/        端到端验证（真实权重 + 真实音频，含与 madmom 的对照校验）
@@ -55,17 +55,28 @@ Mp3ToSheet.Bench/        命令行测速器：解码一次，三引擎横向对�
 UnityExample/            Unity 集成示例
   Assets/Scripts/BasicPitchBurst/  Burst 加速引擎（NmpBurstEngine，需 Burst 包）
 
+install.bat              一键安装：检查 .NET SDK + 构建全部工程 + 冒烟自检
 build.bat                一键构建全部工程
+install_mt3.bat          MT3 模型一键安装（下载 checkpoint + 导出 ONNX）
 convert_mt3_onnx.py      MT3 PyTorch checkpoint → ONNX 导出
 export_mt3_onnx.bat      上述导出脚本的一键包装（自动准备虚拟环境）
 .onnx_export/            BasicPitch 前向图生成管线（nmp.onnx → NmpIr.g.cs）
 ```
 
-## 构建
+## 安装 / 构建
+
+首次 clone 后，一条命令完成环境检查 + 全量构建 + 冒烟自检（只依赖 .NET 8 SDK，不需要 Python）：
 
 ```bat
-build.bat            :: Release，构建 BasicPitch / Mt3 / 测试程序 / WPF 应用
-build.bat Debug      :: Debug
+install.bat           :: 推荐入口：构建全部工程并运行冒烟测试
+build.bat             :: 仅构建（Release）
+build.bat Debug       :: Debug
+```
+
+MT3 多乐器转谱还需要额外的 ONNX 模型文件（约 350 MB，未随仓库分发）：
+
+```bat
+install_mt3.bat       :: 下载 MR-MT3 checkpoint 并导出 ONNX（需要 Python 3.10+，见「MT3 模型」）
 ```
 
 产物：
@@ -126,7 +137,7 @@ mt3.ConvertToMidi(samples, sampleRate, "output.mid");
 ```csharp
 using Madmom;
 
-// 权重文件由本机转换脚本生成（纯个人/非商业用途，详见 Madmom/README.md 许可说明）
+// 权重已内置（纯个人/非商业用途，详见 Madmom/README.md 许可说明）
 IrGraph downbeatModel = MadmomDownBeatIr.Build();   // 314 → 3
 IrGraph beatModel = MadmomBeatIr.Build();           // 266 → 1（可选但推荐）
 var analyzer = new MadmomAnalyzer(downbeatModel, beatModel);
@@ -136,12 +147,17 @@ foreach (var b in r.Downbeats)
     Console.WriteLine($"{b.Time:F3}s  beatInBar={b.BeatInBar}  bpb={b.BeatsPerBar}  bpm={b.Bpm}");
 ```
 
-模型文件生成（一次性、在你本机）：
+权重（`MadmomDownBeatIr.g.cs` / `MadmomBeatIr.g.cs`）已随仓库分发，开箱即用。
+如需从你自己的 madmom 重新生成（可选）：
 
 ```bash
 pip install madmom
-python .madmom_export/export_madmom_ir.py --model <downbeat.pkl> --fps 100 --out .madmom_export/out
-python .madmom_export/gen_madmom_cs.py        # → Madmom/MadmomIr.g.cs
+# downbeat（314 → 3）
+python .madmom_export/export_madmom_ir.py --model <downbeats_blstm_1.pkl> --fps 100 --out .madmom_export/out
+python .madmom_export/gen_madmom_cs.py --ir .madmom_export/out/ir.json --cs Madmom/MadmomDownBeatIr.g.cs --class-name MadmomDownBeatIr
+# beat（266 → 1，可选但推荐）
+python .madmom_export/export_madmom_ir.py --model <beats_blstm_1.pkl> --fps 100 --out .madmom_export/out
+python .madmom_export/gen_madmom_cs.py --ir .madmom_export/out/ir.json --cs Madmom/MadmomBeatIr.g.cs --class-name MadmomBeatIr
 ```
 
 `Madmom.dll` 目标框架 `netstandard2.1`，可直接放入 Unity（含移动端），无 ONNX / 原生依赖。
@@ -257,6 +273,12 @@ Mt3 的 ONNX 模型文件放入 `Assets/StreamingAssets/`。
 MT3 需要额外的 ONNX 模型文件（约 350 MB），体积过大，**未随本仓库分发**。
 BasicPitch 的模型（`BasicPitch/nmp.onnx`，230 KB）参数已固化进 `NmpIr.g.cs`，无需额外下载。
 
+一键安装（等价于下面两步，已下载 / 已导出则自动跳过）：
+
+```bat
+install_mt3.bat
+```
+
 ### 1. 下载 MR-MT3 checkpoint
 
 模型来自 HuggingFace 仓库 [`gudgud1014/MR-MT3`](https://huggingface.co/gudgud1014/MR-MT3)（MIT 许可）：
@@ -290,7 +312,8 @@ export_mt3_onnx.bat
 
 也可以在已配置好的 Python 环境中直接运行 `python convert_mt3_onnx.py`。
 
-之后 `BasicPitchSharp.Test` 构建时会自动把 `mt3_onnx/` 下的模型复制到输出目录。
+之后 `BasicPitchSharp.Test` 构建时会自动把 `mt3_onnx/` 下的模型复制到输出目录；
+未安装 MT3 模型时该工程也能正常构建（只是不带模型文件）。
 
 ## 性能
 

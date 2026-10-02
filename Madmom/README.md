@@ -16,18 +16,20 @@ audio(float[], sampleRate)
 
 ## 许可（事实说明，非阻断项）
 
-本项目为**纯个人 / 非商业**用途，按下面方式本机生成即可，功能完整可用。
+本项目为**纯个人 / 非商业**用途。
 
-- 上游 madmom 及其训练权重以 **CC BY-NC-SA 4.0（非商业）** 发布。本仓库**不内置**任何 madmom 权重；
-  `*.g.cs`（内联权重的生成文件）由你本机运行转换脚本、从你自己安装的 madmom 派生后生成。
+- 上游 madmom 及其训练权重以 **CC BY-NC-SA 4.0（非商业）** 发布。本仓库**已内置**从 madmom 0.16.1
+  默认模型导出的 `MadmomDownBeatIr.g.cs` / `MadmomBeatIr.g.cs`（内联权重），clone 后即可编译运行，
+  使用时请遵守上游的非商业条款；也可按下方步骤用你自己的 madmom 重新生成覆盖。
 - 引擎、特征、DBN/HMM 等**本仓库自研代码**为 MIT（与项目其余部分一致），可自由使用；
   受上游协议约束的**仅**是权重数据本身。若将来要商用，联系原作者取授权或自行训练等价模型替换即可。
 
 ---
 
-## 生成模型（在你本机，一次性）
+## 重新生成模型（可选）
 
-需要 Python 3.8+ 与本地 `madmom`（`pip install madmom`，它本身依赖 numpy/scipy/cython）。
+权重已内置，以下步骤仅在你想用**自己的** madmom 重新生成时执行。需要 Python 3.8+ 与本地
+`madmom`（`pip install madmom`，它本身依赖 numpy/scipy/cython）。
 
 ### 1. 取 madmom 的模型 `.pkl`
 
@@ -70,13 +72,12 @@ python .madmom_export/export_madmom_ir.py --model <beats.pkl>   --fps 100 --out 
 ### 3. 生成 C# 权重文件
 
 ```bash
-python .madmom_export/gen_madmom_cs.py
-# 等价默认参数：
-#   --ir .madmom_export/out/ir.json
-#   --out Madmom/MadmomIr.g.cs
+python .madmom_export/gen_madmom_cs.py --ir .madmom_export/out/ir.json --cs Madmom/MadmomDownBeatIr.g.cs --class-name MadmomDownBeatIr
+# 参数默认值：--ir .madmom_export/out/ir.json、--cs Madmom/MadmomIr.g.cs、--class-name MadmomIr
+# beat 模型同理：--cs Madmom/MadmomBeatIr.g.cs --class-name MadmomBeatIr
 ```
 
-生成 `Madmom/MadmomIr.g.cs`：算子常量 + 缓冲区元数据（时间维以 1 占位）+ 节点表 + **base64 内联的
+生成 `Madmom/<类名>.g.cs`：算子常量 + 缓冲区元数据（时间维以 1 占位）+ 节点表 + **base64 内联的
 命名权重** + `public static IrGraph Build()`。重新生成后直接重新编译即可，**无需改任何业务代码**。
 
 ---
@@ -93,8 +94,9 @@ dotnet run  --project Madmom.Test            # 跑冒烟测试（合成权重，
 - `DownBeatDbn` / `BeatTracker` 能跑通（[2][3]）；
 - 构造的**周期拍点信号**能被 DBN 检出多拍（[4]，证明解码器对节奏敏感，而非随机噪声）。
 
-`MadmomIr.g.cs` 缺失时，库本身仍可编译（权重在运行时由 `MadmomIr.Build()` 注入）；只有调用
-`MadmomIr.Build()` 时才需要该文件。
+`*Ir.g.cs` 缺失时，库本身仍可编译（权重在运行时由对应的 `Build()` 注入）；只有调用
+`MadmomDownBeatIr.Build()` / `MadmomBeatIr.Build()` 时才需要该文件。注意 `Mp3ToSheet` 与
+`Madmom.EndToEnd` 会直接调用它们，因此这两个工程需要权重文件在位（本仓库已内置）。
 
 ---
 
