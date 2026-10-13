@@ -27,7 +27,8 @@ echo [1/4] 检查 .NET SDK ...
 where dotnet >nul 2>nul
 if errorlevel 1 (
     echo       [错误] 未找到 dotnet 命令。
-    echo              请先安装 .NET 8 SDK：https://dotnet.microsoft.com/download/dotnet/8.0
+    echo              请先安装 .NET 8 SDK（可运行 setup_env.bat 自动安装）：
+    echo              https://dotnet.microsoft.com/download/dotnet/8.0
     goto :fail
 )
 for /f "tokens=*" %%V in ('dotnet --version') do set "DOTNETVER=%%V"

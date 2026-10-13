@@ -55,6 +55,7 @@ Mp3ToSheet.Bench/        命令行测速器：解码一次，三引擎横向对�
 UnityExample/            Unity 集成示例
   Assets/Scripts/BasicPitchBurst/  Burst 加速引擎（NmpBurstEngine，需 Burst 包）
 
+setup_env.bat           全新机器首选：自动安装 .NET 8 SDK + Python（winget，失败回退免管理员安装）
 install.bat              一键安装：检查 .NET SDK + 构建全部工程 + 冒烟自检
 build.bat                一键构建全部工程
 install_mt3.bat          MT3 模型一键安装（下载 checkpoint + 导出 ONNX）
@@ -65,7 +66,15 @@ export_mt3_onnx.bat      上述导出脚本的一键包装（自动准备虚拟�
 
 ## 安装 / 构建
 
-首次 clone 后，一条命令完成环境检查 + 全量构建 + 冒烟自检（只依赖 .NET 8 SDK，不需要 Python）：
+全新机器（没有 .NET / Python）先运行环境安装脚本，自动检测并安装 .NET 8 SDK 与 Python 3.10+
+（优先 winget，不可用时回退到免管理员的官方用户级安装），装完会继续调用 install.bat 自动构建：
+
+```bat
+setup_env.bat          :: 全新机器首选：装环境 + 构建
+setup_env.bat --check  :: 只检测不安装，查看当前环境是否齐全
+```
+
+已有 .NET 8 SDK 时，一条命令完成环境检查 + 全量构建 + 冒烟自检（构建本身不需要 Python）：
 
 ```bat
 install.bat           :: 推荐入口：构建全部工程并运行冒烟测试
